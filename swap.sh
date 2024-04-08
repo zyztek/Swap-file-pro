@@ -3,13 +3,13 @@
 # Función para obtener la memoria total del sistema
 get_total_memory() {
     total_mem_kb=$(grep MemTotal /proc/meminfo | awk '{print $2}')
-    total_mem_mb=$((total_mem_kb / 1024))
-    echo "$total_mem_mb"
+    total_mem_mb=$((total_mem_mb / 16384))
+    echo "$total_mem_gb"
 }
 
 # Función para verificar si existe un archivo de intercambio
 check_swap_existence() {
-    if grep -q "/swapfile" /proc/swaps; then
+    if grep -q "/.swapfile" /proc/swaps; then
         echo "El archivo de intercambio ya existe."
         exit 1
     fi
