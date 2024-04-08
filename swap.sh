@@ -2,16 +2,43 @@
 
 # Función para obtener la memoria total del sistema
 get_total_memory() {
-    total_mem_kb=$(grep MemTotal /proc/meminfo | awk '{print $2}')
-    total_mem_mb=$((total_mem_mb / 16384))
+    total_mem_mb=$(grep MemTotal /proc/meminfo | awk '{print $2}')
+    total_mem_gb=$((total_mem_mb / 1024))
     echo "$total_mem_gb"
 }
 
 # Función para verificar si existe un archivo de intercambio
 check_swap_existence() {
-    if grep -q "/.swapfile" /proc/swaps; then
+    if grep -q "/swapfile" /proc/swaps; then
         echo "El archivo de intercambio ya existe."
-        exit 1
+        read -rp "¿Deseas borrar el archivo de intercambio existente? (S/n): " delete_swap
+        if [[ "$delete_swap" == "S" || "$delete_swap" == "s" ]]; then
+            echo "Borrando el archivo de intercambio existente..."
+            swapoff /swapfile
+            rm -f /swapfile
+            sed -i '/\/swapfile/d' /etc/fstab
+            echo "Archivo de intercambio existente eliminado."
+        else
+            echo "Saliendo del script."
+            exit 0
+        fi
+    fi
+
+    # Escanear el sistema para buscar más archivos swap y eliminarlos si se encuentran
+    additional_swapfiles=$(grep -E '/[a-zA-Z0-9/_-]+.swap' /proc/swaps | awk '{print $1}')
+    if [ -n "$additional_swapfiles" ]; then
+        echo "Se han encontrado archivos de intercambio adicionales:"
+        echo "$additional_swapfiles"
+        read -rp "¿Deseas eliminar estos archivos de intercambio adicionales? (S/n): " delete_additional_swap
+        if [[ "$delete_additional_swap" == "S" || "$delete_additional_swap" == "s" ]]; then
+            echo "Eliminando archivos de intercambio adicionales..."
+            for swapfile in $additional_swapfiles; do
+                swapoff "$swapfile"
+                rm -f "$swapfile"
+                sed -i "/$swapfile/d" /etc/fstab
+            done
+            echo "Archivos de intercambio adicionales eliminados."
+        fi
     fi
 }
 
